@@ -1,0 +1,65 @@
+/* -------------------------------------- */
+/* CLEAN CUSTOM SWAGGER UI THEME (NO HEADER) */
+/* -------------------------------------- */
+
+/* Completely remove Swagger header AND topbar */
+.swagger-ui .topbar,
+.swagger-ui .topbar-wrapper {
+    display: none !important;
+}
+
+/* Page background */
+body {
+    background: #f4f7fb !important;
+}
+
+/* Main container card look */
+.swagger-ui .wrapper {
+    margin: 30px auto;
+    max-width: 1400px;
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Tags section */
+.opblock-tag-section h4 {
+    background: #0b2e4e !important;
+    padding: 10px 14px;
+    color: #fff !important;
+    border-radius: 6px;
+    margin-bottom: 10px !important;
+}
+
+/* Endpoint boxes */
+.opblock {
+    border-radius: 10px !important;
+    margin-bottom: 18px !important;
+    border-left: 6px solid #0b2e4e !important;
+}
+
+/* Buttons */
+.swagger-ui .btn {
+    border-radius: 6px !important;
+}
+
+/* Models box */
+.model-box {
+    background: #eef5ff !important;
+    padding: 10px;
+    border-radius: 6px;
+}
+
+/* Try it out */
+.try-out__btn {
+    background: #0b2e4e !important;
+    color: #fff !important;
+}
+
+/* Execute button */
+.execute.opblock-control__btn {
+    background-color: #118bee !important;
+    color: white !important;
+    border-radius: 6px !important;
+}
