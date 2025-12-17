@@ -76,3 +76,17 @@ export const generateSubDeptId = async () => {
   const seqNum = counter.seq.toString().padStart(4, "0");
   return `SUB${seqNum}`;
 };
+
+
+
+
+export async function generateAdminId() {
+  const counter = await Counter.findByIdAndUpdate(
+    "adminId",            // counter key
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+
+  const padded = counter.seq.toString().padStart(6, "0");
+  return `ADM${padded}`; // Example => ADM000001
+}
