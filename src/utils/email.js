@@ -87,3 +87,11 @@ export default transporter;
 // await sendWelcomeEmail("user@gmail.com", "Amit");
 
 // await sendResetPasswordEmail("user@gmail.com", "https://yourapp.com/reset/123");
+// 🔹 Send Password Success Email
+export const sendPasswordChangedEmail = async (to) => {
+  const html = `
+    <h2>Password Changed Successfully</h2>
+    <p>Your password has been updated. If you did not perform this action, please contact support immediately.</p>
+  `;
+  return sendEmail(to, "Security Alert: Password Changed", html);
+};

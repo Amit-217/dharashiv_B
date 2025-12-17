@@ -1,9 +1,13 @@
-
-// controllers/admin.controller.js
-import Admin from "../models/Admin.js";
+import Admin from "../models/adminModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { generateAdminId } from "../utils/generateAdminId.js";
+import { generateAdminId } from "../utils/generateIds.js";
+// Import your email services
+import { 
+  sendWelcomeEmail, 
+  sendOtpEmail, 
+  sendPasswordChangedEmail 
+} from "../utils/email.js";
 
 /* ================= REGISTER ================= */
 export const registerAdmin = async (req, res) => {
@@ -27,30 +31,10 @@ export const registerAdmin = async (req, res) => {
       assignedTaluka
     });
 
-    res.status(201).json({ message: "Admin registered", admin });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+    // ✅ Send Welcome Email
+    await sendWelcomeEmail(email, name);
 
-/* ================= LOGIN ================= */
-export const loginAdmin = async (req, res) => {
-  try {
-    const { phone, password } = req.body;
-
-    const admin = await Admin.findOne({ phone });
-    if (!admin) return res.status(404).json({ message: "Admin not found" });
-
-    const match = await bcrypt.compare(password, admin.password);
-    if (!match) return res.status(401).json({ message: "Invalid credentials" });
-
-    const token = jwt.sign(
-      { id: admin._id, adminId: admin.adminId },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    res.json({ message: "Login successful", token, admin });
+    res.status(201).json({ message: "Admin registered and welcome email sent", admin });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -70,8 +54,8 @@ export const forgotPassword = async (req, res) => {
     admin.otpExpiry = Date.now() + 10 * 60 * 1000; // 10 min
     await admin.save();
 
-    // 🔔 integrate email service here
-    console.log("OTP:", otp);
+    // ✅ Send OTP Email
+    await sendOtpEmail(email, otp);
 
     res.json({ message: "OTP sent to email" });
   } catch (err) {
@@ -94,8 +78,11 @@ export const resetPassword = async (req, res) => {
     admin.password = await bcrypt.hash(newPassword, 10);
     admin.otp = null;
     admin.otpExpiry = null;
-
     await admin.save();
+
+    // ✅ Send Password Changed Confirmation
+    await sendPasswordChangedEmail(email);
+
     res.json({ message: "Password reset successful" });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -115,12 +102,39 @@ export const resendOtp = async (req, res) => {
     admin.otpExpiry = Date.now() + 10 * 60 * 1000;
     await admin.save();
 
-    console.log("Resent OTP:", otp);
+    // ✅ Send Resent OTP Email
+    await sendOtpEmail(email, otp);
+
     res.json({ message: "OTP resent" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+// ... (Rest of your GET, UPDATE, DELETE controllers remain the same)
+/* ================= LOGIN ================= */
+export const loginAdmin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const admin = await Admin.findOne({ email });
+    if (!admin) return res.status(404).json({ message: "Admin not found" });
+
+    const match = await bcrypt.compare(password, admin.password);
+    if (!match) return res.status(401).json({ message: "Invalid credentials" });
+
+    const token = jwt.sign(
+      { id: admin._id, adminId: admin.adminId },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({ message: "Login successful", token, admin });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 /* ================= GET ADMIN ================= */
 export const getAdminById = async (req, res) => {

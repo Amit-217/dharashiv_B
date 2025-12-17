@@ -11,7 +11,7 @@ import {
   getAllAdmins,
   updateAdmin,
   deleteAdmin
-} from "../controllers/admin.controller.js";
+} from "../controllers/adminController.js";
 
 const router = express.Router();
 
