@@ -23,6 +23,6 @@ router.put("/update/:deptId", updateDepartment);
 router.delete("/delete/:deptId", deleteDepartment);
 
 // Reset Counter
-router.put("/reset-counter", resetDepartmentCounter);
+router.post("/reset-counter", resetDepartmentCounter);
 
 export default router;

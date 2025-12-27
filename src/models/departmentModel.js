@@ -24,7 +24,17 @@ const departmentSchema = new mongoose.Schema(
 
     level: {
       type: String,
-      enum: ["taluka", "cluster", "village", "town", "district"],
+enum: [
+  "district",
+  "taluka",
+  "village",
+  "town",
+  "cluster",
+  "block",
+  "local",
+  "urban",
+  "rural"
+],
       required: true,
       trim: true
     },

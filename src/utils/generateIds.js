@@ -1,4 +1,5 @@
 import Counter from "../models/counterModel.js";
+import Department from "../models/departmentModel.js";
 
 export async function generateAppUserId() {
   const counter = await Counter.findByIdAndUpdate(
@@ -39,15 +40,53 @@ export async function generateVillageId() {
 // =============================
 // Generate Department ID
 // =============================
+// export const generateDepartmentId = async () => {
+//   const counter = await Counter.findByIdAndUpdate(
+//     "departmentId",
+//     { $inc: { seq: 1 } },
+//     { new: true, upsert: true }
+//   );
+
+//   const seqNum = counter.seq.toString().padStart(4, "0");
+//   return `DEP${seqNum}`;
+// };
+
 export const generateDepartmentId = async () => {
-  const counter = await Counter.findByIdAndUpdate(
+  // Increment counter
+  let counter = await Counter.findByIdAndUpdate(
     "departmentId",
     { $inc: { seq: 1 } },
     { new: true, upsert: true }
   );
 
-  const seqNum = counter.seq.toString().padStart(4, "0");
-  return `DEP${seqNum}`;
+  let deptId = "DEP" + counter.seq.toString().padStart(4, "0");
+
+  // Check if ID already exists
+  const exists = await Department.findOne({ deptId }).lean();
+
+  if (!exists) return deptId;
+
+  console.warn(`⚠️ Duplicate detected for ${deptId} — resyncing counter...`);
+
+  // ===== AUTO-FIX: resync counter with DB max deptId =====
+  const lastDept = await Department.findOne().sort({ deptId: -1 }).lean();
+
+  const lastSeq = lastDept
+    ? parseInt(lastDept.deptId.replace("DEP", ""))
+    : 0;
+
+  // Update counter to correct value
+  counter = await Counter.findByIdAndUpdate(
+    "departmentId",
+    { seq: lastSeq + 1 },
+    { new: true, upsert: true }
+  );
+
+  deptId = "DEP" + counter.seq.toString().padStart(4, "0");
+
+  console.log(`🔧 Counter auto-fixed → Next ID ${deptId}`);
+
+  return deptId;
 };
 
 // =============================

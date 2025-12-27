@@ -14,6 +14,10 @@ import complaintRoute from "./routes/complaintRoute.js";
 import subDepartmentRoute from "./routes/subDepartmentRoute.js";
 import mappingRoute from "./routes/mappingRoutes.js";
 import adminRoute from "./routes/adminRoute.js";  
+import importVillageRoutes from "./routes/importvillage.route.js";
+import departmentImportRoutes from "./routes/importDepartment.route.js";
+
+
 
 
 import path from "path";
@@ -53,6 +57,9 @@ app.use("/api/complaints", complaintRoute);
 app.use("/api/sub-departments", subDepartmentRoute);
 app.use("/api/mappings", mappingRoute);
 app.use("/api/admins", adminRoute);
+app.use("/api", importVillageRoutes);
+app.use("/api/departments", departmentImportRoutes);
+
 
 
 export default app;
