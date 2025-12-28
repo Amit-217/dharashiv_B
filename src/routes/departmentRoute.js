@@ -8,21 +8,23 @@ import {
   resetDepartmentCounter
 } from "../controllers/departmentController.js";
 
+import { auth, adminOnly,superAdminOnly } from "../middlewares/authMiddleware.js";
+
 const router = express.Router();
 
-router.post("/create", createDepartment);
+router.post("/create", auth, superAdminOnly, createDepartment);
 
 // Get All
-router.get("/all", getAllDepartments);
+router.get("/all",auth ,getAllDepartments);
 
 // Get by deptId
-router.get("/:deptId", getDepartmentById);
+router.get("/:deptId", auth, getDepartmentById);
 
-router.put("/update/:deptId", updateDepartment);
+router.put("/update/:deptId", auth, superAdminOnly, updateDepartment);
 
-router.delete("/delete/:deptId", deleteDepartment);
+router.delete("/delete/:deptId", auth, superAdminOnly, deleteDepartment);
 
 // Reset Counter
-router.post("/reset-counter", resetDepartmentCounter);
+router.post("/reset-counter", auth, superAdminOnly, resetDepartmentCounter);
 
 export default router;

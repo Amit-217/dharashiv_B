@@ -21,31 +21,37 @@ const complaintSchema = new mongoose.Schema(
       required: true
     },
 
-    village: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Village",
-      required: true
-    },
-
     department: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
       required: true
     },
-
-    subDepartment: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "SubDepartment",
-      required: true
+    
+    specification: {
+      type: String,
+      trim: true
     },
 
-    subject: { type: String, required: true, trim: true },
-    description: { type: String, required: true, trim: true },
+    subject: {
+      type: String,
+      required: true,
+      trim: true
+    },
+
+    description: {
+      type: String,
+      required: true,
+      trim: true
+    },
 
     media: [
       {
-        type: { type: String, enum: ["image", "video", "pdf", "audio"], required: true },
-        url: { type: String, required: true }
+        type: {
+          type: String,
+          enum: ["image", "video", "pdf", "audio"],
+          
+        },
+        url: { type: String,  }
       }
     ],
 
@@ -55,11 +61,30 @@ const complaintSchema = new mongoose.Schema(
       default: "open"
     },
 
+    /* ================= DISCUSSION / HISTORY ================= */
     history: [
       {
-        message: String,
-        by: { type: mongoose.Schema.Types.ObjectId, ref: "AppUser" }, // Changed to AppUser for consistency
-        timestamp: { type: Date, default: Date.now }
+        message: {
+          type: String,
+          required: true,
+          trim: true
+        },
+
+        by: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true
+        },
+
+        byRole: {
+          type: String,
+          enum: ["user", "admin", "superadmin"],
+          required: true
+        },
+
+        timestamp: {
+          type: Date,
+          default: Date.now
+        }
       }
     ]
   },

@@ -9,25 +9,26 @@ import {
   deleteVillage,
   resetVillageCounter
 } from "../controllers/villageController.js";
+import { auth, adminOnly,superAdminOnly } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 // Create Village
-router.post("/create", createVillage);
+router.post("/create", auth, superAdminOnly, createVillage);
 
 // Get All
-router.get("/all", getAllVillages);
+router.get("/all",auth, getAllVillages);
 
 // Get By Taluka
-router.get("/by-taluka/:talukaId", getVillageByTaluka);
+router.get("/by-taluka/:talukaId", auth, getVillageByTaluka);
 
 // Update Village
-router.put("/update/:villageId", updateVillage);
+router.put("/update/:villageId", auth, superAdminOnly, updateVillage);
 
 // Delete Village
-router.delete("/delete/:villageId", deleteVillage);
+router.delete("/delete/:villageId", auth, superAdminOnly, deleteVillage);
 
 // Reset Counter
-router.put("/reset-counter", resetVillageCounter);
+router.put("/reset-counter", auth, superAdminOnly, resetVillageCounter);
 
 export default router;

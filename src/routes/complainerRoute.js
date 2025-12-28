@@ -7,15 +7,14 @@ import {
     deleteComplainer,
     getComplainersByAppUser
 } from "../controllers/complainerController.js";
-import { adminVerifyToken } from "../middlewares/authMiddleware.js";
+import { auth,adminOnly } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/", adminVerifyToken, createComplainer);
-router.get("/", adminVerifyToken, getAllComplainers);
-router.get("/by-user/:userId", adminVerifyToken, getComplainersByAppUser);
-router.get("/:id", adminVerifyToken, getComplainerById);
-router.put("/:id", adminVerifyToken, updateComplainer);
-router.delete("/:id",adminVerifyToken, deleteComplainer);
-
+router.post("/", auth, createComplainer);
+router.get("/", auth, adminOnly, getAllComplainers);
+router.get("/by-user/:userId", auth, getComplainersByAppUser);
+router.get("/:id", auth,  getComplainerById);
+router.put("/:id", auth, updateComplainer);
+router.delete("/:id",auth, deleteComplainer);
 export default router;

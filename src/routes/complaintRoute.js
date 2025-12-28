@@ -8,20 +8,25 @@ import {
     getComplaintsByAppUser
 } from "../controllers/complaintController.js";
 import upload from "../middlewares/uploadMiddleware.js";
-import { adminVerifyToken } from "../middlewares/authMiddleware.js";
+import { auth ,adminOnly } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 // Protected Routes
 // Protected Routes
 
-router.post("/", adminVerifyToken, upload.array("media", 10), createComplaint);
-router.get("/",adminVerifyToken, getAllComplaints);
-router.get("/user/:appUserId", adminVerifyToken, getComplaintsByAppUser);
-router.get("/:id",adminVerifyToken, getComplaintById);
-router.put("/:id/status", adminVerifyToken, updateComplaintStatus);
+router.post(
+  "/complaints",
+  auth,
+  upload.array("media", 10), // 👈 always attach multer
+  createComplaint
+);
 
+router.get("/", auth, adminOnly, getAllComplaints);
+router.get("/user/:appUserId", auth, getComplaintsByAppUser);
+router.get("/:id", auth, getComplaintById);
+router.put("/:id/status", auth, adminOnly, updateComplaintStatus);
 // Public Routes
-router.get("/track/:complaintId", trackComplaint);
+router.get("/track/:complaintId", auth ,trackComplaint);
 
 export default router;

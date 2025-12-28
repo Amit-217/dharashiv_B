@@ -1,54 +1,27 @@
+// models/adminModel.js
 import mongoose from "mongoose";
 
 const adminSchema = new mongoose.Schema(
   {
-    adminId: {
+    adminId: { type: String, required: true, unique: true },
+
+    name: { type: String, required: true },
+    phone: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
+
+    password: { type: String, required: true },
+
+    role: {
       type: String,
-      required: true,
-      unique: true
-    },
-
-    name: {
-      type: String,
-      required: true,
-      trim: true
-    },
-
-    phone: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true
-    },
-
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true
-    },
-
-    password: {
-      type: String,
-      required: true
-    },
-
-    otp: {
-      type: String
-    },
-
-    otpExpiry: {
-      type: Date
+      enum: ["superadmin", "admin"]
     },
 
     assignedTaluka: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Taluka",
-        required: true
-      }
-    ]
+      { type: mongoose.Schema.Types.ObjectId, ref: "Taluka" }
+    ],
+
+    otp: String,
+    otpExpiry: Date
   },
   { timestamps: true }
 );

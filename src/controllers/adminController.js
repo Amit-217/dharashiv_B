@@ -2,6 +2,7 @@ import Admin from "../models/adminModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { generateAdminId } from "../utils/generateIds.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 // Import your email services
 import { 
   sendWelcomeEmail, 
@@ -12,35 +13,74 @@ import {
 /* ================= REGISTER ================= */
 export const registerAdmin = async (req, res) => {
   try {
-    const { name, phone, email, password, assignedTaluka } = req.body;
+    const { name, phone, email, password, role, assignedTaluka } = req.body;
+
+    if (!role)
+      return res.status(400).json({ message: "Role is required" });
 
     const exists = await Admin.findOne({ $or: [{ phone }, { email }] });
-    if (exists) {
+    if (exists)
       return res.status(400).json({ message: "Admin already exists" });
-    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const adminId = await generateAdminId();
 
     const admin = await Admin.create({
-      adminId,
+      adminId: await generateAdminId(),
       name,
       phone,
       email,
       password: hashedPassword,
+      role, // 👈 BODY SE AAYA
       assignedTaluka
     });
 
-    // ✅ Send Welcome Email
-    await sendWelcomeEmail(email, name);
+    await sendWelcomeEmail(email, name, role );
 
-    res.status(201).json({ message: "Admin registered and welcome email sent", admin });
+    res.status(201).json({
+      message: "Admin registered successfully",
+      adminId: admin.adminId,
+      role: admin.role
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* ================= FORGOT PASSWORD (SEND OTP) ================= */
+
+export const loginAdmin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const admin = await Admin.findOne({ email });
+    if (!admin)
+      return res.status(404).json({ message: "Admin not found" });
+
+    const match = await bcrypt.compare(password, admin.password);
+    if (!match)
+      return res.status(401).json({ message: "Invalid credentials" });
+
+    const accessToken = await generateAccessToken({
+      id: admin.adminId,
+      role: admin.role
+    });
+
+    const refreshToken = await generateRefreshToken({
+      id: admin.adminId,
+      role: admin.role
+    });
+
+    res.json({
+      message: "Login successful",
+      accessToken,
+      refreshToken,
+      role: admin.role
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -51,10 +91,9 @@ export const forgotPassword = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     admin.otp = otp;
-    admin.otpExpiry = Date.now() + 10 * 60 * 1000; // 10 min
+    admin.otpExpiry = Date.now() + 10 * 60 * 1000;
     await admin.save();
 
-    // ✅ Send OTP Email
     await sendOtpEmail(email, otp);
 
     res.json({ message: "OTP sent to email" });
@@ -63,7 +102,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-/* ================= RESET PASSWORD ================= */
+
 export const resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
@@ -71,16 +110,14 @@ export const resetPassword = async (req, res) => {
     const admin = await Admin.findOne({ email, otp });
     if (!admin) return res.status(400).json({ message: "Invalid OTP" });
 
-    if (admin.otpExpiry < Date.now()) {
+    if (admin.otpExpiry < Date.now())
       return res.status(400).json({ message: "OTP expired" });
-    }
 
     admin.password = await bcrypt.hash(newPassword, 10);
     admin.otp = null;
     admin.otpExpiry = null;
     await admin.save();
 
-    // ✅ Send Password Changed Confirmation
     await sendPasswordChangedEmail(email);
 
     res.json({ message: "Password reset successful" });
@@ -89,7 +126,8 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-/* ================= RESEND OTP ================= */
+
+
 export const resendOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -98,11 +136,11 @@ export const resendOtp = async (req, res) => {
     if (!admin) return res.status(404).json({ message: "Admin not found" });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
     admin.otp = otp;
     admin.otpExpiry = Date.now() + 10 * 60 * 1000;
     await admin.save();
 
-    // ✅ Send Resent OTP Email
     await sendOtpEmail(email, otp);
 
     res.json({ message: "OTP resent" });
@@ -111,102 +149,29 @@ export const resendOtp = async (req, res) => {
   }
 };
 
-// ... (Rest of your GET, UPDATE, DELETE controllers remain the same)
-/* ================= LOGIN ================= */
-// export const loginAdmin = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-
-//     const admin = await Admin.findOne({ email });
-//     if (!admin) return res.status(404).json({ message: "Admin not found" });
-
-//     const match = await bcrypt.compare(password, admin.password);
-//     if (!match) return res.status(401).json({ message: "Invalid credentials" });
-
-//     const token = jwt.sign(
-//       { id: admin._id, adminId: admin.adminId },
-//       process.env.JWT_SECRET,
-//       { expiresIn: "1d" }
-//     );
-
-//     res.json({ message: "Login successful", token, admin });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-/* ================= LOGIN ================= */
-export const loginAdmin = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Find admin by email
-    const admin = await Admin.findOne({ email });
-    if (!admin) return res.status(404).json({ message: "Admin not found" });
-
-    // Check password
-    const match = await bcrypt.compare(password, admin.password);
-    if (!match) return res.status(401).json({ message: "Invalid credentials" });
-
-    // Generate JWT using correct secret from .env
-    const token = jwt.sign(
-      { id: admin._id, adminId: admin.adminId, role: admin.role },
-      process.env.ACCESS_TOKEN_SECRET, // <--- corrected
-      { expiresIn: process.env.ACCESS_TOKEN_EXPIRE || "1d" }
-    );
-
-    res.json({ message: "Login successful", token, admin });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
 
 
-/* ================= GET ADMIN ================= */
 export const getAdminById = async (req, res) => {
-  try {
-    const admin = await Admin.findById(req.params.id).populate("assignedTaluka");
-    res.json(admin);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const admin = await Admin.findById(req.params.id).populate("assignedTaluka");
+  res.json(admin);
 };
 
 export const getAdminByPhone = async (req, res) => {
-  try {
-    const admin = await Admin.findOne({ phone: req.params.phone });
-    res.json(admin);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const admin = await Admin.findOne({ phone: req.params.phone });
+  res.json(admin);
 };
 
 export const getAllAdmins = async (req, res) => {
-  try {
-    const admins = await Admin.find().populate("assignedTaluka");
-    res.json(admins);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const admins = await Admin.find().populate("assignedTaluka");
+  res.json(admins);
 };
 
-/* ================= UPDATE ================= */
 export const updateAdmin = async (req, res) => {
-  try {
-    const admin = await Admin.findByIdAndUpdate(req.params.id, req.body, {
-      new: true
-    });
-    res.json({ message: "Admin updated", admin });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  const admin = await Admin.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  res.json({ message: "Admin updated", admin });
 };
 
-/* ================= DELETE ================= */
 export const deleteAdmin = async (req, res) => {
-  try {
-    await Admin.findByIdAndDelete(req.params.id);
-    res.json({ message: "Admin deleted" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  await Admin.findByIdAndDelete(req.params.id);
+  res.json({ message: "Admin deleted" });
 };

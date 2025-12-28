@@ -1,4 +1,3 @@
-// routes/admin.routes.js
 import express from "express";
 import {
   registerAdmin,
@@ -13,20 +12,68 @@ import {
   deleteAdmin
 } from "../controllers/adminController.js";
 
+import { auth, adminOnly,superAdminOnly } from "../middlewares/authMiddleware.js";
+
 const router = express.Router();
 
-// Auth
-router.post("/register", registerAdmin);
+/* ================= AUTH ================= */
+
+// Login (Admin + SuperAdmin)
 router.post("/login", loginAdmin);
+
+// Forgot password
 router.post("/forgot-password", forgotPassword);
+
+// Reset password
 router.post("/reset-password", resetPassword);
+
+// Resend OTP
 router.post("/resend-otp", resendOtp);
 
-// CRUD
-router.get("/", getAllAdmins);
-router.get("/:id", getAdminById);
-router.get("/phone/:phone", getAdminByPhone);
-router.put("/:id", updateAdmin);
-router.delete("/:id", deleteAdmin);
+/* ================= ADMIN MANAGEMENT ================= */
+
+// Register Admin (ONLY SUPERADMIN)
+router.post(
+  "/register",
+  auth,
+  superAdminOnly,
+  registerAdmin
+);
+
+// Get all admins (SuperAdmin + Admin)
+router.get(
+  "/",
+  auth,adminOnly,
+  getAllAdmins
+);
+
+// Get admin by MongoDB ID
+router.get(
+  "/id/:id",
+  auth,
+  getAdminById
+);
+
+// Get admin by phone
+router.get(
+  "/phone/:phone",
+  auth,adminOnly,
+  getAdminByPhone
+);
+
+// Update admin
+router.put(
+  "/:id",
+  auth,adminOnly,
+  updateAdmin
+);
+
+// Delete admin (ONLY SUPERADMIN recommended)
+router.delete(
+  "/:id",
+  auth,
+  superAdminOnly,
+  deleteAdmin
+);
 
 export default router;
