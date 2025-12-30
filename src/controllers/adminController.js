@@ -92,7 +92,9 @@ export const forgotPassword = async (req, res) => {
 
     admin.otp = otp;
     admin.otpExpiry = Date.now() + 10 * 60 * 1000;
-    await admin.save();
+
+    // 👇 ye line fix hai — validation skip
+    await admin.save({ validateBeforeSave: false });
 
     await sendOtpEmail(email, otp);
 
@@ -101,6 +103,7 @@ export const forgotPassword = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 export const resetPassword = async (req, res) => {
