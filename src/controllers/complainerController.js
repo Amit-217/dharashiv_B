@@ -4,7 +4,7 @@ import { generateComplainerId } from "../utils/generateIds.js";
 // CREATE Complainer
 export const createComplainer = async (req, res) => {
     try {
-        const { name, phone, taluka, village, address } = req.body;
+        const { name, phone, taluka, village} = req.body;
         // Check if addedBy is provided, else use logged-in user
         const addedBy = req.body.addedBy || req.user?._id;
 
@@ -24,7 +24,6 @@ export const createComplainer = async (req, res) => {
             phone,
             taluka,
             village,
-            address,
             addedBy
         });
 
@@ -69,6 +68,9 @@ export const getComplainersByAppUser = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+
+
 
 // UPDATE Complainer
 export const updateComplainer = async (req, res) => {

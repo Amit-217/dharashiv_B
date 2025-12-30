@@ -2,6 +2,7 @@ import Complaint from "../models/complaintModel.js";
 import AppUser from "../models/appUserModel.js";
 import Complainer from "../models/complainerModel.js";
 import Counter from "../models/counterModel.js";
+import Admin from "../models/adminModel.js";
 
 /* ================= GENERATE COMPLAINT ID ================= */
 /*
@@ -140,38 +141,71 @@ export const getComplaintById = async (req, res) => {
   }
 };
 
-/* ================= UPDATE STATUS / ADD MESSAGE (ADMIN) ================= */
-export const updateComplaintStatus = async (req, res) => {
+export const getComplaintsByComplainer = async (req, res) => {
   try {
-    const { status, message } = req.body;
+    const { complainerId } = req.params;
 
-    const complaint = await Complaint.findById(req.params.id);
-    if (!complaint) {
-      return res.status(404).json({ message: "Complaint not found" });
+    // Check complainer exist & permission (ownership check)
+    const complainer = await Complainer.findById(complainerId);
+    if (!complainer) {
+      return res.status(404).json({ message: "Complainer not found" });
     }
 
-    if (status) {
-      complaint.status = status;
+    // App User can only view his own complainers complaints
+    if (req.role === "user" && complainer.addedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not allowed for this complainer" });
     }
 
-    if (message) {
-      complaint.history.push({
-        message,
-        by: req.user._id,
-        byRole: req.role // admin / superadmin
-      });
-    }
+    const complaints = await Complaint.find({ complainer: complainerId })
+      .populate("department", "name")
+      .populate("filedBy", "name appUserId")
+      .sort({ createdAt: -1 });
 
-    await complaint.save();
+    res.json(complaints);
 
-    res.json({
-      message: "Complaint updated successfully",
-      complaint
-    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+
+
+
+/* ================= UPDATE STATUS / ADD MESSAGE (ADMIN) ================= */
+export const updateComplaintStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+
+    const complaint = await Complaint.findById(req.params.id);
+
+    if (!complaint) {
+      return res.status(404).json({ message: "Complaint not found" });
+    }
+
+    // 🛑 Only admin/superadmin allowed to update status
+    if (req.role !== "admin" && req.role !== "superadmin") {
+      return res.status(403).json({ message: "Only admin can update status" });
+    }
+
+    // 🔄 Status update
+    complaint.status = status;
+    await complaint.save();
+
+    return res.json({
+      message: "Complaint status updated successfully",
+      complaint
+    });
+
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 
 /* ================= PUBLIC TRACKING (NO LOGIN) ================= */
 export const trackComplaint = async (req, res) => {
@@ -199,6 +233,93 @@ export const getComplaintsByAppUser = async (req, res) => {
       .sort({ createdAt: -1 });
 
     res.json(complaints);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
+
+export const getComplaintHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const complaint = await Complaint.findById(id)
+      .select("history filedBy");
+
+    if (!complaint) {
+      return res.status(404).json({ message: "Complaint not found" });
+    }
+
+    // User access block if not owner
+    if (req.role === "user" && complaint.filedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not allowed to view this complaint" });
+    }
+
+    const formattedHistory = [];
+
+    for (const msg of complaint.history) {
+      let senderData = { _id: msg.by, name: "Unknown", role: msg.byRole };
+
+      if (msg.byRole === "user") {
+        const user = await AppUser.findById(msg.by).select("name");
+        if (user) senderData.name = user.name;
+      } 
+      else { // admin / superadmin
+        const admin = await Admin.findById(msg.by).select("name");
+        if (admin) senderData.name = admin.name;
+      }
+
+      formattedHistory.push({
+        message: msg.message,
+        by: senderData,
+        timestamp: msg.timestamp
+      });
+    }
+
+    res.json(formattedHistory);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
+export const addChatMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message } = req.body;
+
+    if (!message?.trim()) {
+      return res.status(400).json({ message: "Message is required" });
+    }
+
+    const complaint = await Complaint.findById(id)
+      .select("history filedBy");
+
+    if (!complaint) {
+      return res.status(404).json({ message: "Complaint not found" });
+    }
+
+    // 🔐 Permission check for USER — only complaint created by same user
+    if (req.role === "user" && complaint.filedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not allowed to chat on this complaint" });
+    }
+
+    // 📝 Push message
+    complaint.history.push({
+      message,
+      by: req.user._id,
+      byRole: req.role, // "user" or "admin"
+      timestamp: new Date()
+    });
+
+    await complaint.save();
+
+    res.json({ message: "Message sent successfully", history: complaint.history });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
