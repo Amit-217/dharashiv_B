@@ -3,7 +3,7 @@ import AppUser from "../models/appUserModel.js";
 import Complainer from "../models/complainerModel.js";
 import Counter from "../models/counterModel.js";
 import Admin from "../models/adminModel.js";
-
+import cloudinary from "../config/cloudinary.js";
 /* ================= GENERATE COMPLAINT ID ================= */
 /*
  Format: CMP-{USER_LAST4}-{COMPLAINER_LAST4}-{SEQ}
@@ -32,6 +32,8 @@ const generateComplaintId = async (filedByMongoId, complainerMongoId) => {
 };
 
 /* ================= CREATE COMPLAINT (APP USER) ================= */
+
+
 export const createComplaint = async (req, res) => {
   try {
     const { complainer, department, subject, description, specification } = req.body;
@@ -40,7 +42,7 @@ export const createComplaint = async (req, res) => {
       return res.status(400).json({ message: "Required fields missing" });
     }
 
-    // Mongo ObjectId from auth middleware
+    // from auth middleware
     const filedBy = req.user._id;
 
     // Ownership check
@@ -49,26 +51,33 @@ export const createComplaint = async (req, res) => {
       return res.status(404).json({ message: "Complainer not found" });
     }
 
-    // ✅ FIXED FIELD NAME
     if (complainerDoc.addedBy.toString() !== filedBy.toString()) {
       return res.status(403).json({ message: "You cannot use this complainer" });
     }
 
-    // Media handling
+    // ✅ CLOUDINARY MEDIA HANDLING
     let media = [];
-    if (req.files?.length) {
-      media = req.files.map(file => {
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
         let type = "image";
         if (file.mimetype.startsWith("video/")) type = "video";
         else if (file.mimetype === "application/pdf") type = "pdf";
         else if (file.mimetype.startsWith("audio/")) type = "audio";
 
+        const uploadResult = await cloudinary.uploader.upload(
+          `data:${file.mimetype};base64,${file.buffer.toString("base64")}`,
+          {
+            folder: "complaints",
+            resource_type: type === "video" || type === "audio" ? "auto" : "image"
+          }
+        );
 
-        return {
+        media.push({
           type,
-          url: `/api/uploads/${file.filename}`
-        };
-      });
+          url: uploadResult.secure_url
+        });
+      }
     }
 
     const complaintId = await generateComplaintId(filedBy, complainer);
@@ -95,10 +104,13 @@ export const createComplaint = async (req, res) => {
       message: "Complaint created successfully",
       complaint
     });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 /* ================= GET ALL COMPLAINTS (ADMIN / SUPERADMIN) ================= */

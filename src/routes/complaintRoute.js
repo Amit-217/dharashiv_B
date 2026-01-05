@@ -21,7 +21,7 @@ const router = express.Router();
 router.post(
   "/complaints",
   auth,
-  upload.array("media", 10), // 👈 always attach multer
+  upload.array("media", 5), // 👈 always attach multer
   createComplaint
 );
 
