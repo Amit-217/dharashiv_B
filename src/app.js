@@ -1,9 +1,7 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 
-// routes imports
-import { swaggerDocs } from "./swagger/swagger.js";
+// routes
 import appUserRoute from "./routes/appUserRoute.js";
 import authRoute from "./routes/authRoute.js";
 import talukaRoute from "./routes/talukaRoute.js";
@@ -11,55 +9,68 @@ import villageRoute from "./routes/villageRoute.js";
 import departmentRoute from "./routes/departmentRoute.js";
 import complainerRoute from "./routes/complainerRoute.js";
 import complaintRoute from "./routes/complaintRoute.js";
-import subDepartmentRoute from "./routes/subDepartmentRoute.js";
-import mappingRoute from "./routes/mappingRoutes.js";
-import adminRoute from "./routes/adminRoute.js";  
+import adminRoute from "./routes/adminRoute.js";
 import importVillageRoutes from "./routes/importvillage.route.js";
 import departmentImportRoutes from "./routes/importDepartment.route.js";
 
-
-
-
-import path from "path";
-import { fileURLToPath } from "url";
-
-// Fix __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-dotenv.config();
-
 const app = express();
 
-// middlewares
-app.use(cors());
+console.log("🔥 app.js loaded");
+
+// ✅ MIDDLEWARES
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://your-frontend.vercel.app",
+    ],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Serve static uploads
-app.use("/api/uploads", express.static(path.join(__dirname, "../uploads")));
-
-
-
-// test route
+// ✅ BASIC TEST ROUTES
 app.get("/", (req, res) => {
   res.send("App is running...");
 });
-swaggerDocs(app);
 
-// routes 
+app.get("/test", (req, res) => {
+  res.json({ ok: true });
+});
+
+// ✅ ROUTES (with debug logs)
+console.log("➡️ registering routes...");
+
 app.use("/api/appUsers", appUserRoute);
+console.log("✔ appUsers route loaded");
+
 app.use("/api/auth", authRoute);
+console.log("✔ auth route loaded");
+
 app.use("/api/talukas", talukaRoute);
+console.log("✔ talukas route loaded");
+
 app.use("/api/villages", villageRoute);
+console.log("✔ villages route loaded");
+
 app.use("/api/departments", departmentRoute);
+console.log("✔ departments route loaded");
+
 app.use("/api/complainers", complainerRoute);
+console.log("✔ complainers route loaded");
+
 app.use("/api/complaints", complaintRoute);
-app.use("/api/sub-departments", subDepartmentRoute);
-app.use("/api/mappings", mappingRoute);
+console.log("✔ complaints route loaded");
+
 app.use("/api/admins", adminRoute);
+console.log("✔ admins route loaded");
+
 app.use("/api", importVillageRoutes);
+console.log("✔ importVillage route loaded");
+
 app.use("/api/departments", departmentImportRoutes);
-
-
+console.log("✔ departmentImport route loaded");
 
 export default app;

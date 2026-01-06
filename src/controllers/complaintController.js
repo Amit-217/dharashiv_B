@@ -33,7 +33,6 @@ const generateComplaintId = async (filedByMongoId, complainerMongoId) => {
 
 /* ================= CREATE COMPLAINT (APP USER) ================= */
 
-
 export const createComplaint = async (req, res) => {
   try {
     const { complainer, department, subject, description, specification } = req.body;
@@ -42,10 +41,8 @@ export const createComplaint = async (req, res) => {
       return res.status(400).json({ message: "Required fields missing" });
     }
 
-    // from auth middleware
     const filedBy = req.user._id;
 
-    // Ownership check
     const complainerDoc = await Complainer.findById(complainer);
     if (!complainerDoc) {
       return res.status(404).json({ message: "Complainer not found" });
@@ -55,27 +52,35 @@ export const createComplaint = async (req, res) => {
       return res.status(403).json({ message: "You cannot use this complainer" });
     }
 
-    // ✅ CLOUDINARY MEDIA HANDLING
     let media = [];
 
-    if (req.files && req.files.length > 0) {
+    if (req.files?.length) {
       for (const file of req.files) {
         let type = "image";
-        if (file.mimetype.startsWith("video/")) type = "video";
-        else if (file.mimetype === "application/pdf") type = "pdf";
-        else if (file.mimetype.startsWith("audio/")) type = "audio";
+        let resourceType = "image";
+
+        if (file.mimetype.startsWith("video/")) {
+          type = "video";
+          resourceType = "auto";
+        } else if (file.mimetype.startsWith("audio/")) {
+          type = "audio";
+          resourceType = "auto";
+        } else if (file.mimetype === "application/pdf") {
+          type = "pdf";
+          resourceType = "raw";
+        }
 
         const uploadResult = await cloudinary.uploader.upload(
           `data:${file.mimetype};base64,${file.buffer.toString("base64")}`,
           {
             folder: "complaints",
-            resource_type: type === "video" || type === "audio" ? "auto" : "image"
+            resource_type: resourceType,
           }
         );
 
         media.push({
           type,
-          url: uploadResult.secure_url
+          url: uploadResult.secure_url,
         });
       }
     }
@@ -95,18 +100,18 @@ export const createComplaint = async (req, res) => {
         {
           message: "Complaint registered",
           by: filedBy,
-          byRole: "user"
-        }
-      ]
+          byRole: "user",
+        },
+      ],
     });
 
     res.status(201).json({
       message: "Complaint created successfully",
-      complaint
+      complaint,
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Create complaint error:", err);
     res.status(500).json({ error: err.message });
   }
 };

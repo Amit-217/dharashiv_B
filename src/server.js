@@ -1,14 +1,12 @@
 import dotenv from "dotenv";
+dotenv.config(); // ✅ sabse pehle
+
 import app from "./app.js";
 import connectDB from "./config/db_config.js";
 
-dotenv.config();
-
-// DB Connect
 connectDB();
 
 const PORT = process.env.PORT || 4000;
-
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
