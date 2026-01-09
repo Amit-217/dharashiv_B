@@ -1,71 +1,107 @@
 import nodemailer from "nodemailer";
 
+/* ================= TRANSPORT ================= */
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,           // smtp-relay.brevo.com
+  host: process.env.EMAIL_HOST,           // smtp.gmail.com
   port: Number(process.env.EMAIL_PORT),   // 587
-  secure: false,                          // TLS
-  requireTLS: true,
+  secure: false,                          // TLS (587)
   auth: {
-    user: process.env.EMAIL_USER,         // Brevo SMTP username
-    pass: process.env.EMAIL_PASS,         // Brevo SMTP key
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   },
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
+// (optional but good) – startup check
+transporter.verify((err) => {
+  if (err) {
+    console.error("❌ Email transporter error:", err.message);
+  } else {
+    console.log("📧 Email transporter ready");
+  }
+});
 
+/* ================= BASE WRAPPER ================= */
+const baseTemplate = (title, content) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>${title}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+  <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:8px;overflow:hidden;">
+    
+    <div style="background:#0f172a;color:#ffffff;padding:16px 24px;">
+      <h2 style="margin:0;">Viplora Tech</h2>
+    </div>
 
-// ----------------------------
-// 2. Base Send Email Function
-// ----------------------------
-export const sendEmail = async (to, subject, html) => {
+    <div style="padding:24px;color:#111827;font-size:15px;line-height:1.6;">
+      ${content}
+    </div>
+
+    <div style="background:#f1f5f9;padding:14px;text-align:center;font-size:12px;color:#6b7280;">
+      © ${new Date().getFullYear()} Viplora Tech. All rights reserved.
+    </div>
+
+  </div>
+</body>
+</html>
+`;
+
+/* ================= SEND EMAIL ================= */
+export const sendEmail = async ({ to, subject, html }) => {
   try {
-    const mailOptions = {
-      from: process.env.EMAIL_FROM, // ✅ IMPORTANT
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM, // "Viplora Tech <cinpedoff@gmail.com>"
       to,
       subject,
-      html,
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log("📧 Email sent to:", to);
+      html
+    });
   } catch (err) {
-    console.error("❌ Email Sending Error:", err.message);
-    throw err; // allow controller to handle if needed
+    console.error("❌ Email send failed:", err.message);
+    throw err;
   }
 };
 
-// ----------------------------
-// 3. OTP Email
-// ----------------------------
+/* ================= OTP EMAIL ================= */
 export const sendOtpEmail = async (to, otp) => {
-  const html = `
-  <!DOCTYPE html>
-  <html>
-    <head>
-      <meta charset="UTF-8" />
-      <title>OTP Verification</title>
-    </head>
-    <body style="font-family: Arial; background:#f4f6f8; padding:20px;">
-      <div style="max-width:600px; margin:auto; background:#fff; padding:24px; border-radius:8px;">
-        <h2 style="color:#0f172a;">OTP Verification</h2>
-        <p>Your OTP is valid for <b>10 minutes</b>:</p>
-        <div style="font-size:28px; font-weight:bold; letter-spacing:6px; background:#f1f5f9; padding:12px; text-align:center;">
-          ${otp}
-        </div>
-        <p style="color:#dc2626; font-size:13px;">
-          ⚠️ Do not share this OTP with anyone.
-        </p>
-        <p>— Viplora Tech</p>
-      </div>
-    </body>
-  </html>
-  `;
+  const html = baseTemplate(
+    "OTP Verification",
+    `
+      <h3 style="margin-top:0;">OTP Verification</h3>
+      <p>Your One-Time Password (OTP) is:</p>
 
-  return sendEmail(to, "Your OTP Code", html);
+      <div style="
+        font-size:28px;
+        font-weight:bold;
+        letter-spacing:6px;
+        background:#f1f5f9;
+        padding:12px;
+        text-align:center;
+        border-radius:6px;
+        margin:16px 0;
+      ">
+        ${otp}
+      </div>
+
+      <p>This OTP is valid for <b>10 minutes</b>.</p>
+      <p style="color:#dc2626;font-size:13px;">
+        ⚠️ Do not share this OTP with anyone.
+      </p>
+    `
+  );
+
+  return sendEmail({
+    to,
+    subject: "Your OTP Code",
+    html
+  });
 };
 
-// ----------------------------
-// 4. Welcome Email
-// ----------------------------
+/* ================= WELCOME EMAIL ================= */
 export const sendWelcomeEmail = async (to, name, role) => {
   const roleLabel =
     role === "superadmin"
@@ -74,39 +110,45 @@ export const sendWelcomeEmail = async (to, name, role) => {
       ? "Administrator"
       : "User";
 
-  const html = `
-  <h2>Welcome to Viplora Tech 🎉</h2>
-  <p>Hi <b>${name}</b>,</p>
-  <p>Your account has been created with role: <b>${roleLabel}</b></p>
-  <p>We’re excited to have you on board.</p>
-  <p>— Team Viplora Tech</p>
-  `;
+  const html = baseTemplate(
+    "Welcome",
+    `
+      <h3>Welcome to Viplora Tech 🎉</h3>
+      <p>Hello <b>${name}</b>,</p>
+      <p>Your account has been successfully created.</p>
 
-  return sendEmail(to, "Welcome to Viplora Tech", html);
+      <p><b>Role:</b> ${roleLabel}</p>
+
+      <p>You can now log in and start using the system.</p>
+    `
+  );
+
+  return sendEmail({
+    to,
+    subject: "Welcome to Viplora Tech",
+    html
+  });
 };
 
-// ----------------------------
-// 5. Reset Password Email
-// ----------------------------
-export const sendResetPasswordEmail = async (to, resetLink) => {
-  const html = `
-    <h2>Password Reset Requested</h2>
-    <p>Click the link below to reset your password:</p>
-    <a href="${resetLink}">${resetLink}</a>
-  `;
-  return sendEmail(to, "Reset Your Password", html);
-};
-
-// ----------------------------
-// 6. Password Changed Alert
-// ----------------------------
+/* ================= PASSWORD CHANGED ================= */
 export const sendPasswordChangedEmail = async (to) => {
-  const html = `
-  <h2>Password Changed Successfully</h2>
-  <p>Your account password has been updated.</p>
-  <p>If this was not you, contact support immediately.</p>
-  `;
-  return sendEmail(to, "Security Alert: Password Changed", html);
+  const html = baseTemplate(
+    "Password Changed",
+    `
+      <h3>Password Updated</h3>
+      <p>Your account password has been changed successfully.</p>
+
+      <p style="color:#dc2626;">
+        If this was not you, please contact support immediately.
+      </p>
+    `
+  );
+
+  return sendEmail({
+    to,
+    subject: "Security Alert: Password Changed",
+    html
+  });
 };
 
 export default transporter;

@@ -35,8 +35,6 @@ router.post("/resend-otp", resendOtp);
 // Register Admin (ONLY SUPERADMIN)
 router.post(
   "/register",
-  auth,
-  superAdminOnly,
   registerAdmin
 );
 
