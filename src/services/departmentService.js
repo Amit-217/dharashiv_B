@@ -106,3 +106,50 @@ export const resetDepartmentCounterService = async () => {
     throw new Error("Failed to reset department ID counter.");
   }
 };
+
+
+
+export const bulkCreateDepartmentsService = async (departments) => {
+  if (!Array.isArray(departments) || departments.length === 0) {
+    throw new Error("Departments array is required and cannot be empty.");
+  }
+
+  const inserted = [];
+  const failed = [];
+
+  for (let i = 0; i < departments.length; i++) {
+    const dept = departments[i];
+
+    try {
+      if (!dept.name || !dept.name.en || !dept.name.mr) {
+        throw new Error("English and Marathi names are required.");
+      }
+
+      const deptId = await generateDepartmentId();
+
+      const newDept = new Department({
+        deptId,
+        name: dept.name,
+        description: dept.description || ""
+      });
+
+      await newDept.save();
+      inserted.push(newDept);
+
+    } catch (err) {
+      failed.push({
+        index: i,
+        name: dept?.name || null,
+        reason: err.message
+      });
+    }
+  }
+
+  return {
+    total: departments.length,
+    successCount: inserted.length,
+    failedCount: failed.length,
+    inserted,
+    failed
+  };
+};

@@ -10,6 +10,10 @@ import departmentRoute from "./routes/departmentRoute.js";
 import complainerRoute from "./routes/complainerRoute.js";
 import complaintRoute from "./routes/complaintRoute.js";
 import adminRoute from "./routes/adminRoute.js";
+import eventRoutes from "./routes/eventRoutes.js";
+
+
+
 
 const app = express();
 
@@ -65,6 +69,8 @@ console.log("✔ complaints route loaded");
 app.use("/api/admins", adminRoute);
 console.log("✔ admins route loaded");
 
+app.use("/api/events", eventRoutes);
+console.log("✔ events route loaded");
 
 
 export default app;

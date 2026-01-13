@@ -4,7 +4,8 @@ import {
   getDepartmentByIdService,
   updateDepartmentService,
   deleteDepartmentService,
-  resetDepartmentCounterService
+  resetDepartmentCounterService,
+  bulkCreateDepartmentsService
 } from "../services/departmentService.js";
 
 // ==========================
@@ -98,3 +99,31 @@ export const resetDepartmentCounter = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
+
+export const bulkCreateDepartments = async (req, res) => {
+  try {
+    const { departments } = req.body;
+
+    const result = await bulkCreateDepartmentsService(departments);
+
+    res.status(201).json({
+      message: "Bulk department insert completed",
+      summary: {
+        total: result.total,
+        inserted: result.successCount,
+        failed: result.failedCount
+      },
+      data: result
+    });
+
+  } catch (err) {
+    res.status(400).json({
+      message: err.message
+    });
+  }
+};
+
+
+

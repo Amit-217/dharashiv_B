@@ -1,101 +1,86 @@
-import Complainer from "../models/complainerModel.js";
-import { generateComplainerId } from "../utils/generateIds.js";
+import {
+  createComplainerService,
+  getAllComplainersService,
+  getComplainerByIdService,
+  getComplainersByAppUserService,
+  updateComplainerService,
+  deleteComplainerService
+} from "../services/complainerService.js";
 
-// CREATE Complainer
+// CREATE
 export const createComplainer = async (req, res) => {
-    try {
-        const { name, phone, taluka, village} = req.body;
-        // Check if addedBy is provided, else use logged-in user
-        const addedBy = req.body.addedBy || req.user?._id;
+  try {
+    const addedBy = req.body.addedBy || req.user?._id;
 
-        if (!name || !taluka || !village) {
-            return res.status(400).json({ message: "Name, Taluka, and Village are required" });
-        }
+    const complainer = await createComplainerService({
+      ...req.body,
+      addedBy
+    });
 
-        if (!addedBy) {
-            return res.status(400).json({ message: "addedBy User ID is required" });
-        }
-
-        const complainerId = await generateComplainerId();
-
-        const newComplainer = await Complainer.create({
-            complainerId,
-            name,
-            phone,
-            taluka,
-            village,
-            addedBy
-        });
-
-        res.status(201).json({ message: "Complainer created successfully", complainer: newComplainer });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    res.status(201).json({
+      message: "Complainer created successfully",
+      data: complainer
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };
 
-// GET ALL Complainers
+// GET ALL
 export const getAllComplainers = async (req, res) => {
-    try {
-        const complainers = await Complainer.find().populate("addedBy", "name phone");
-        res.json(complainers);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+  try {
+    const data = await getAllComplainersService();
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
-// GET Single Complainer
+// GET ONE
 export const getComplainerById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const complainer = await Complainer.findById(id).populate("addedBy", "name phone");
-
-        if (!complainer) return res.status(404).json({ message: "Complainer not found" });
-
-        res.json(complainer);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+  try {
+    const data = await getComplainerByIdService(req.params.id);
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(404).json({ message: err.message });
+  }
 };
 
-// GET Complainers by AppUser (addedBy)
+// GET BY USER
 export const getComplainersByAppUser = async (req, res) => {
-    try {
-        const { userId } = req.params; // Assumes ObjectId
-        const complainers = await Complainer.find({ addedBy: userId }).populate("addedBy", "name phone");
-
-        res.json(complainers);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+  try {
+    const data = await getComplainersByAppUserService(req.params.userId);
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };
 
-
-
-
-// UPDATE Complainer
+// UPDATE
 export const updateComplainer = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const updatedComplainer = await Complainer.findByIdAndUpdate(id, req.body, { new: true });
+  try {
+    const data = await updateComplainerService(
+      req.params.id,
+      req.body
+    );
 
-        if (!updatedComplainer) return res.status(404).json({ message: "Complainer not found" });
-
-        res.json({ message: "Complainer updated", complainer: updatedComplainer });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    res.status(200).json({
+      message: "Complainer updated successfully",
+      data
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };
 
-// DELETE Complainer
+// DELETE
 export const deleteComplainer = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const deletedComplainer = await Complainer.findByIdAndDelete(id);
-
-        if (!deletedComplainer) return res.status(404).json({ message: "Complainer not found" });
-
-        res.json({ message: "Complainer deleted successfully" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+  try {
+    await deleteComplainerService(req.params.id);
+    res.status(200).json({
+      message: "Complainer deleted successfully"
+    });
+  } catch (err) {
+    res.status(404).json({ message: err.message });
+  }
 };
