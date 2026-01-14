@@ -53,10 +53,15 @@ const visitorSchema = new mongoose.Schema(
       enum: ["Registered", "InProgress", "Visited", "Absent"],
       default: "Registered"
     },
+    appUser: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AppUser",
+      default: null
+    },
 
     registeredBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "AppUser",
+      ref: "Admin",
       default: null
     },
 

@@ -11,6 +11,7 @@ import complainerRoute from "./routes/complainerRoute.js";
 import complaintRoute from "./routes/complaintRoute.js";
 import adminRoute from "./routes/adminRoute.js";
 import eventRoutes from "./routes/eventRoutes.js";
+import visitorRoutes from "./routes/visitorRoutes.js";
 
 
 
@@ -22,10 +23,7 @@ console.log("🔥 app.js loaded");
 // ✅ MIDDLEWARES
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://your-frontend.vercel.app",
-    ],
+    origin: true,
     credentials: true,
   })
 );
@@ -71,6 +69,9 @@ console.log("✔ admins route loaded");
 
 app.use("/api/events", eventRoutes);
 console.log("✔ events route loaded");
+
+app.use("/api/visitors", visitorRoutes);
+console.log("✔ visitors route loaded");
 
 
 export default app;
