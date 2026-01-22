@@ -5,7 +5,8 @@ import {
   updateEventStatusService,
   getAllEventsService,
   getEventByIdService,
-  deleteEventService
+  deleteEventService,
+  getLimitedEventsService
 } from "../services/eventService.js";
 
 export const createEvent = async (req, res) => {
@@ -127,6 +128,25 @@ export const deleteEvent = async (req, res) => {
     });
   } catch (error) {
     res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
+
+export const getLimitedEvents = async (req, res) => {
+  try {
+    const events = await getLimitedEventsService();
+
+    res.status(200).json({
+      success: true,
+      count: events.length,
+      data: events
+    });
+  } catch (error) {
+    res.status(500).json({
       success: false,
       message: error.message
     });

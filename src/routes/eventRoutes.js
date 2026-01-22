@@ -5,7 +5,8 @@ import {
   updateEventStatus,
   getAllEvents,
   getEventById,
-  deleteEvent
+  deleteEvent,
+  getLimitedEvents
 } from "../controllers/eventController.js";
 import { auth, superAdminOnly } from "../middlewares/authMiddleware.js";
 
@@ -63,6 +64,11 @@ router.delete(
   "/:id",
   /* protect, isAdmin, */
   deleteEvent
+);
+
+router.get(
+  "/limited/events",
+  getLimitedEvents
 );
 
 export default router;

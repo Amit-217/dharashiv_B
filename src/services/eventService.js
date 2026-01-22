@@ -1,6 +1,6 @@
 import Event from "../models/eventModel.js";
 import { generateEventId } from "../utils/generateIds.js";
-
+import mongoose from "mongoose";
 export const createEventService = async (data) => {
   try {
     const {
@@ -161,3 +161,60 @@ export const deleteEventService = async (id) => {
     throw error;
   }
 };
+
+
+
+export const getLimitedEventsService = async () => {
+  const now = new Date();
+
+  // Ongoing
+  const ongoing = await Event.find({
+    status: "Ongoing"
+  })
+    .sort({ eventDate: -1 })
+    .limit(1);
+
+  // Future (nearest first)
+  const future = await Event.find({
+    eventDate: { $gt: now },
+    status: { $ne: "Cancelled" }
+  })
+    .sort({ eventDate: 1 })
+    .limit(2);
+
+  // Past (MOST RECENT first)
+  const past = await Event.find({
+    eventDate: { $lt: now }
+  })
+    .sort({ eventDate: -1 })
+    .limit(3); // 🔥 upto 3 recent past
+
+  let result = [];
+
+  if (ongoing.length) {
+    result.push(ongoing[0]);
+
+    if (future.length) {
+      result.push(future[0]);
+    }
+
+    // fill remaining from past
+    const remaining = 3 - result.length;
+    if (remaining > 0 && past.length) {
+      result.push(...past.slice(0, remaining));
+    }
+  } else {
+    if (future.length >= 2) {
+      result.push(future[0], future[1]);
+      if (past.length) result.push(past[0]);
+    } else if (future.length === 1) {
+      result.push(future[0]);
+      result.push(...past.slice(0, 2)); // 🔥 2 recent past
+    } else {
+      result.push(...past.slice(0, 3)); // 🔥 3 recent past
+    }
+  }
+
+  return result.slice(0, 3);
+};
+
