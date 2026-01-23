@@ -4,35 +4,55 @@ import {
   getComplainerByIdService,
   getComplainersByAppUserService,
   updateComplainerService,
-  deleteComplainerService
+  deleteComplainerService,
+  getComplainersByUserAndTalukaService,
+  getComplainersByTalukaService
 } from "../services/complainerService.js";
 
 // CREATE
 export const createComplainer = async (req, res) => {
   try {
-    const addedBy = req.body.addedBy || req.user?._id;
+    // 🔒 addedBy always from logged-in user
+    const addedBy = req.user?._id;
 
     const complainer = await createComplainerService({
-      ...req.body,
+      name: req.body.name,
+      phone: req.body.phone,
+      taluka: req.body.taluka,
+      village: req.body.village,
       addedBy
     });
 
     res.status(201).json({
+      success: true,
       message: "Complainer created successfully",
       data: complainer
     });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
 // GET ALL
 export const getAllComplainers = async (req, res) => {
   try {
-    const data = await getAllComplainersService();
-    res.status(200).json(data);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const data = await getAllComplainersService(page, limit);
+
+    res.status(200).json({
+      success: true,
+      ...data
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
@@ -65,11 +85,15 @@ export const updateComplainer = async (req, res) => {
     );
 
     res.status(200).json({
+      success: true,
       message: "Complainer updated successfully",
       data
     });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
@@ -82,5 +106,65 @@ export const deleteComplainer = async (req, res) => {
     });
   } catch (err) {
     res.status(404).json({ message: err.message });
+  }
+};
+
+
+
+// ==========================
+// Get Complainers by User + Taluka (with pagination)
+// ==========================
+export const getComplainersByUserAndTaluka = async (req, res) => {
+  try {
+    const { userId, talukaId } = req.query;
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const data = await getComplainersByUserAndTalukaService(
+      userId,
+      talukaId,
+      page,
+      limit
+    );
+
+    res.status(200).json({
+      success: true,
+      ...data
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+
+// ==========================
+// Get Complainers by Taluka (with pagination)
+// ==========================
+export const getComplainersByTaluka = async (req, res) => {
+  try {
+    const { talukaId } = req.params;
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const data = await getComplainersByTalukaService(
+      talukaId,
+      page,
+      limit
+    );
+
+    res.status(200).json({
+      success: true,
+      ...data
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
   }
 };

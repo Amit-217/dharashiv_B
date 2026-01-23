@@ -6,7 +6,8 @@ const complainerSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      trim: true
+      trim: true,
+      immutable: true
     },
 
     name: {
@@ -17,7 +18,8 @@ const complainerSchema = new mongoose.Schema(
 
     phone: {
       type: String,
-      default: null
+      required: true,        // 🔒 mandatory
+      trim: true
     },
 
     taluka: {
@@ -35,7 +37,8 @@ const complainerSchema = new mongoose.Schema(
     addedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "AppUser",
-      required: true
+      required: true,
+      immutable: true
     }
   },
   { timestamps: true }

@@ -12,14 +12,16 @@ export const createComplainerService = async ({
   village,
   addedBy
 }) => {
-  if (!name || !taluka || !village) {
-    throw new Error("Name, Taluka and Village are required.");
+  // Required checks
+  if (!name || !phone || !taluka || !village) {
+    throw new Error("Name, phone, taluka and village are required.");
   }
 
   if (!addedBy) {
     throw new Error("addedBy user is required.");
   }
 
+  // ObjectId validation
   if (
     !mongoose.Types.ObjectId.isValid(taluka) ||
     !mongoose.Types.ObjectId.isValid(village) ||
@@ -28,12 +30,26 @@ export const createComplainerService = async ({
     throw new Error("Invalid ObjectId provided.");
   }
 
+  // 🔒 DUPLICATE CHECK
+  const duplicate = await Complainer.findOne({
+    name: name.trim(),
+    phone: phone.trim(),
+    village,
+    addedBy
+  });
+
+  if (duplicate) {
+    throw new Error(
+      "Duplicate complainer detected. Same name, phone and village already exists for this user."
+    );
+  }
+
   const complainerId = await generateComplainerId();
 
   const complainer = await Complainer.create({
     complainerId,
-    name,
-    phone: phone || null,
+    name: name.trim(),
+    phone: phone.trim(),
     taluka,
     village,
     addedBy
@@ -45,11 +61,30 @@ export const createComplainerService = async ({
 // ==========================
 // Get All Complainers
 // ==========================
-export const getAllComplainersService = async () => {
-  return await Complainer.find()
-    .populate("taluka", "name")
-    .populate("village", "name")
-    .populate("addedBy", "name phone");
+export const getAllComplainersService = async (page = 1, limit = 10) => {
+  const skip = (page - 1) * limit;
+
+  const [complainers, totalRecords] = await Promise.all([
+    Complainer.find()
+      .populate("taluka", "name")
+      .populate("village", "name")
+      .populate("addedBy", "name phone")
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 }),
+
+    Complainer.countDocuments()
+  ]);
+
+  const totalPages = Math.ceil(totalRecords / limit);
+
+  return {
+    page,
+    limit,
+    totalRecords,
+    totalPages,
+    data: complainers
+  };
 };
 
 // ==========================
@@ -94,9 +129,25 @@ export const updateComplainerService = async (id, updateData) => {
     throw new Error("Invalid complainer ID.");
   }
 
+  // 🔒 Whitelist allowed fields
+  const allowedUpdates = {
+    name: updateData.name,
+    phone: updateData.phone
+  };
+
+  // Remove undefined values
+  Object.keys(allowedUpdates).forEach(
+    key => allowedUpdates[key] === undefined && delete allowedUpdates[key]
+  );
+
+  // At least one field required
+  if (Object.keys(allowedUpdates).length === 0) {
+    throw new Error("Only name or phone can be updated.");
+  }
+
   const updated = await Complainer.findByIdAndUpdate(
     id,
-    updateData,
+    allowedUpdates,
     { new: true }
   );
 
@@ -122,4 +173,92 @@ export const deleteComplainerService = async (id) => {
   }
 
   return true;
+};
+
+
+// ==========================
+// Get Complainers by User + Taluka
+// ==========================
+export const getComplainersByUserAndTalukaService = async (
+  userId,
+  talukaId,
+  page = 1,
+  limit = 10
+) => {
+  if (
+    !mongoose.Types.ObjectId.isValid(userId) ||
+    !mongoose.Types.ObjectId.isValid(talukaId)
+  ) {
+    throw new Error("Invalid userId or talukaId.");
+  }
+
+  const skip = (page - 1) * limit;
+
+  const filter = {
+    addedBy: userId,
+    taluka: talukaId
+  };
+
+  const [complainers, totalRecords] = await Promise.all([
+    Complainer.find(filter)
+      .populate("taluka", "name")
+      .populate("village", "name")
+      .populate("addedBy", "name phone")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+
+    Complainer.countDocuments(filter)
+  ]);
+
+  const totalPages = Math.ceil(totalRecords / limit);
+
+  return {
+    page,
+    limit,
+    totalRecords,
+    totalPages,
+    data: complainers
+  };
+};
+
+
+
+// ==========================
+// Get Complainers by Taluka
+// ==========================
+export const getComplainersByTalukaService = async (
+  talukaId,
+  page = 1,
+  limit = 10
+) => {
+  if (!mongoose.Types.ObjectId.isValid(talukaId)) {
+    throw new Error("Invalid taluka ID.");
+  }
+
+  const skip = (page - 1) * limit;
+
+  const filter = { taluka: talukaId };
+
+  const [complainers, totalRecords] = await Promise.all([
+    Complainer.find(filter)
+      .populate("taluka", "name")
+      .populate("village", "name")
+      .populate("addedBy", "name phone")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+
+    Complainer.countDocuments(filter)
+  ]);
+
+  const totalPages = Math.ceil(totalRecords / limit);
+
+  return {
+    page,
+    limit,
+    totalRecords,
+    totalPages,
+    data: complainers
+  };
 };
