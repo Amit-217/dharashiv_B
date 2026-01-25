@@ -116,7 +116,7 @@ export const deleteComplainer = async (req, res) => {
 // ==========================
 export const getComplainersByUserAndTaluka = async (req, res) => {
   try {
-    const { userId, talukaId } = req.query;
+    const { userId, talukaId } = req.params;
 
     const data = await getComplainersByUserAndTalukaService(
       userId,
@@ -134,6 +134,7 @@ export const getComplainersByUserAndTaluka = async (req, res) => {
     });
   }
 };
+
 
 
 // ==========================
