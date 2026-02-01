@@ -9,7 +9,8 @@ import {
   getMyComplaints,
   getComplaintsByComplainer,
   getComplaintChat,
-  addChatMessage
+  addChatMessage,
+  getRecentComplaints
 } from "../controllers/complaintController.js";
 
 import upload from "../middlewares/uploadMiddleware.js";
@@ -32,6 +33,7 @@ router.post(
 /* ===================================================== */
 router.get("/", auth, adminOnly, getAllComplaints);
 router.put("/:id/status", auth, adminOnly, updateComplaintStatus);
+router.get("/recent/list", auth, adminOnly, getRecentComplaints);
 
 /* ===================================================== */
 /* ================= USER ROUTES ======================= */

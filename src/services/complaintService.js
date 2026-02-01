@@ -381,3 +381,54 @@ export const getComplaintChatService = async (id, req) => {
     timestamp: h.timestamp
   }));
 };
+
+/* ===================================================== */
+/* =============== GET RECENT COMPLAINTS ================= */
+/* ===================================================== */
+export const getRecentComplaintsService = async ({ page, limit }) => {
+  const skip = (page - 1) * limit;
+
+  /* ================= STATS ================= */
+  const statsAggregation = await Complaint.aggregate([
+    {
+      $group: {
+        _id: "$status",
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  const stats = {
+    total: 0,
+    open: 0,
+    "in-progress": 0,
+    resolved: 0,
+    closed: 0
+  };
+
+  statsAggregation.forEach((item) => {
+    stats[item._id] = item.count;
+    stats.total += item.count;
+  });
+
+  /* ================= DATA ================= */
+  const data = await Complaint.find()
+    .sort({ createdAt: -1 }) // 🔥 recent first
+    .skip(skip)
+    .limit(limit)
+    .select("complaintId subject status createdAt complainer")
+    .populate({
+      path: "complainer",
+      select: "name phone taluka village",
+      populate: [
+        { path: "taluka", select: "name" },
+        { path: "village", select: "name" }
+      ]
+    });
+
+  return {
+    totalRecords: stats.total,
+    stats,
+    data
+  };
+};
