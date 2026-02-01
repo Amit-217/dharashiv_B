@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+import { EventStatus } from "../config/constants.js";
+
 const eventSchema = new mongoose.Schema(
   {
     eventId: {
@@ -29,21 +31,27 @@ const eventSchema = new mongoose.Schema(
       required: true
     },
 
-   address: {
-     type: String,
-        trim: true,
-        default: null
+    address: {
+      type: String,
+      trim: true,
+      default: null
     },
 
     maxTokens: {
+      type: Number,
+      default: 100
+    },
+
+    // Track the last issued token number for this event
+    lastTokenNo: {
       type: Number,
       default: 0
     },
 
     status: {
       type: String,
-      enum: ["Announced", "Ongoing", "Completed", "Cancelled"],
-      default: "Announced"
+      enum: Object.values(EventStatus),
+      default: EventStatus.ANNOUNCED
     },
 
     meetingSummary: {

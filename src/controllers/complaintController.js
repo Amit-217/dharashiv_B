@@ -28,7 +28,17 @@ export const createComplaint = async (req, res) => {
 /* ================= GET ALL COMPLAINTS ================= */
 export const getAllComplaints = async (req, res) => {
   try {
-    const { data, totalRecords } = await getAllComplaintsService(req.query);
+    let accessibleTalukas = null;
+
+    // 🔒 If Admin, restrict to assigned talukas
+    if (req.role === "admin") {
+      accessibleTalukas = req.user.assignedTaluka; // Array of ObjectIds
+    }
+
+    const { data, totalRecords } = await getAllComplaintsService(
+      req.query,
+      accessibleTalukas
+    );
     const { page = 1, limit = 10 } = req.query;
 
     res.json({

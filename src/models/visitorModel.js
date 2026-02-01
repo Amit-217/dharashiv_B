@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { VisitorStatus, RegistrationType } from "../config/constants.js";
 
 const visitorSchema = new mongoose.Schema(
   {
@@ -39,7 +40,7 @@ const visitorSchema = new mongoose.Schema(
 
     registrationType: {
       type: String,
-      enum: ["Online", "Offline"],
+      enum: Object.values(RegistrationType),
       required: true
     },
 
@@ -50,8 +51,8 @@ const visitorSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Registered", "InProgress", "Visited", "Absent"],
-      default: "Registered"
+      enum: Object.values(VisitorStatus),
+      default: VisitorStatus.REGISTERED
     },
     appUser: {
       type: mongoose.Schema.Types.ObjectId,

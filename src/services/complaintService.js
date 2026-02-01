@@ -114,7 +114,7 @@ export const createComplaintService = async (req) => {
 /* ===================================================== */
 /* ================ GET ALL COMPLAINTS ================= */
 /* ===================================================== */
-export const getAllComplaintsService = async (query) => {
+export const getAllComplaintsService = async (query, accessibleTalukas = null) => {
   const { status, department, filedBy, talukaId, page = 1, limit = 10 } = query;
 
   const filter = {};
@@ -122,17 +122,42 @@ export const getAllComplaintsService = async (query) => {
   if (department) filter.department = department;
   if (filedBy) filter.filedBy = filedBy;
 
+  // 🌍 Taluka Filter Logic
+  let targetTalukas = [];
+
+  // 1️⃣ If a specific taluka is requested
   if (talukaId) {
     if (!mongoose.Types.ObjectId.isValid(talukaId)) {
       throw new Error("Invalid talukaId");
     }
 
+    // 🔒 Access Check: If restricted, ensure requested taluka is allowed
+    if (accessibleTalukas) {
+      const isAllowed = accessibleTalukas.some(
+        (t) => t.toString() === talukaId.toString()
+      );
+      if (!isAllowed) {
+        throw new Error("Access denied to this Taluka");
+      }
+    }
+
+    targetTalukas = [talukaId];
+  }
+  // 2️⃣ If no specific taluka, but user is restricted (Admin)
+  else if (accessibleTalukas && accessibleTalukas.length > 0) {
+    targetTalukas = accessibleTalukas;
+  }
+
+  // 🔎 Apply Taluka Filter (if any constraints exist)
+  if (targetTalukas.length > 0) {
     const complainers = await Complainer.find(
-      { taluka: talukaId },
+      { taluka: { $in: targetTalukas } },
       { _id: 1 }
     );
 
     const ids = complainers.map((c) => c._id);
+
+    // If no complainers found for these talukas, return empty
     if (!ids.length) {
       return { data: [], totalRecords: 0 };
     }

@@ -8,7 +8,7 @@ import {
   deleteEvent,
   getLimitedEvents
 } from "../controllers/eventController.js";
-import { auth, superAdminOnly } from "../middlewares/authMiddleware.js";
+import { auth,adminOnly, superAdminOnly } from "../middlewares/authMiddleware.js";
 
 // agar auth middleware hai to yahan lagana
 // import { protect, isAdmin } from "../middlewares/authMiddleware.js";
@@ -19,7 +19,7 @@ const router = express.Router();
    CREATE EVENT
 ========================= */
 router.post(
-  "/",auth,superAdminOnly,
+  "/", auth, superAdminOnly,
   createEvent
 );
 
@@ -28,7 +28,8 @@ router.post(
 ========================= */
 router.put(
   "/:id",
-  /* protect, isAdmin, */
+  auth,
+  adminOnly,
   updateEvent
 );
 
@@ -37,7 +38,8 @@ router.put(
 ========================= */
 router.patch(
   "/:id/status",
-  /* protect, isAdmin, */
+  auth,
+  adminOnly,
   updateEventStatus
 );
 
@@ -62,7 +64,8 @@ router.get(
 ========================= */
 router.delete(
   "/:id",
-  /* protect, isAdmin, */
+  auth,
+  adminOnly,
   deleteEvent
 );
 

@@ -1,5 +1,7 @@
 import Visitor from "../models/visitorModel.js";
+import Event from "../models/eventModel.js";
 import mongoose from "mongoose";
+import { VisitorStatus, RegistrationType } from "../config/constants.js";
 
 /* =========================
    REGISTER VISITOR (ONLINE)
@@ -28,13 +30,18 @@ export const registerVisitorOnlineService = async (data) => {
       throw new Error("appUser is required for online registration");
     }
 
-    // 🔢 token number (sequence)
-    const last = await Visitor.findOne({ eventId })
-      .sort({ tokenNo: -1 })
-      .select("tokenNo")
-      .lean();
+    // 🔢 Atomic Token Generation
+    const event = await Event.findOneAndUpdate(
+      { _id: eventId },
+      { $inc: { lastTokenNo: 1 } },
+      { new: true }
+    );
 
-    const nextTokenNo = last ? last.tokenNo + 1 : 1;
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    const nextTokenNo = event.lastTokenNo;
 
     const visitor = await Visitor.create({
       eventId,
@@ -43,7 +50,7 @@ export const registerVisitorOnlineService = async (data) => {
       village,
       taluka,
       issue,
-      registrationType: "Online",
+      registrationType: RegistrationType.ONLINE,
       tokenNo: nextTokenNo,
       appUser
     });
@@ -81,12 +88,18 @@ export const registerVisitorOfflineService = async (data) => {
       throw new Error("registeredBy is required for offline registration");
     }
 
-    const last = await Visitor.findOne({ eventId })
-      .sort({ tokenNo: -1 })
-      .select("tokenNo")
-      .lean();
+    // 🔢 Atomic Token Generation
+    const event = await Event.findOneAndUpdate(
+      { _id: eventId },
+      { $inc: { lastTokenNo: 1 } },
+      { new: true }
+    );
 
-    const nextTokenNo = last ? last.tokenNo + 1 : 1;
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    const nextTokenNo = event.lastTokenNo;
 
     const visitor = await Visitor.create({
       eventId,
@@ -95,7 +108,7 @@ export const registerVisitorOfflineService = async (data) => {
       village,
       taluka,
       issue,
-      registrationType: "Offline",
+      registrationType: RegistrationType.OFFLINE,
       tokenNo: nextTokenNo,
       registeredBy
     });
@@ -178,8 +191,8 @@ export const updateVisitorStatusService = async (visitorId, newStatus) => {
 
     // 🔒 Allowed transitions
     const allowedTransitions = {
-      Registered: ["InProgress"],   // Registered -> Called (InProgress)
-      InProgress: ["Visited", "Absent"]
+      [VisitorStatus.REGISTERED]: [VisitorStatus.IN_PROGRESS],
+      [VisitorStatus.IN_PROGRESS]: [VisitorStatus.VISITED, VisitorStatus.ABSENT]
     };
 
     if (!allowedTransitions[currentStatus]) {

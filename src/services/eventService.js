@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 export const createEventService = async (data) => {
   try {
     const {
+      title, // Add title
       eventDate,
       startTime,
       endTime,
@@ -36,11 +37,12 @@ export const createEventService = async (data) => {
 
     const event = await Event.create({
       eventId,                // auto-generated (EVT000001)
+      title: title || "Janta Darbar", // Default if not provided
       eventDate,
       startTime,
       endTime,
       address: address || null,
-      maxTokens: maxTokens || 0,
+      maxTokens: maxTokens || 100,
       createdBy               // <-- ObjectId from req.user._id
     });
 
@@ -81,9 +83,14 @@ export const updateEventService = async (id, data) => {
 /* =========================
    UPDATE EVENT STATUS
 ========================= */
+import { EventStatus } from "../config/constants.js";
+
+/* =========================
+   UPDATE EVENT STATUS
+========================= */
 export const updateEventStatusService = async (id, status) => {
   try {
-    const allowedStatus = ["Announced", "Ongoing", "Completed", "Cancelled"];
+    const allowedStatus = Object.values(EventStatus);
 
     if (!allowedStatus.includes(status)) {
       throw new Error("Invalid event status");
