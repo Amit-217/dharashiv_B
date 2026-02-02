@@ -30,3 +30,4 @@ export default router;
 // Get Complainers by User + Taluka (with pagination)
 // ==========================   
 // http://localhost:5000/api/complainers/by-user-taluka?userId=65b8f1a9c4d123456789abcd&talukaId=65b9a2d7e9f987654321abcd&page=1&limit=10
+//GET /api/complainers?page=1&limit=10&talukaId=xxxx

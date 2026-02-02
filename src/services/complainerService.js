@@ -61,38 +61,63 @@ export const createComplainerService = async ({
 // ==========================
 // Get All Complainers
 // ==========================
-export const getAllComplainersService = async (page = 1, limit = 10) => {
+export const getAllComplainersService = async (
+  query,
+  accessibleTalukas = null
+) => {
+  const { talukaId, page = 1, limit = 10 } = query;
+
+  const filter = {};
+
+  /* 🌍 TALUKA FILTER LOGIC */
+  let targetTalukas = [];
+
+  // 1️⃣ Specific taluka requested
+  if (talukaId) {
+    if (!mongoose.Types.ObjectId.isValid(talukaId)) {
+      throw new Error("Invalid talukaId");
+    }
+
+    // 🔒 Access check for admin
+    if (accessibleTalukas) {
+      const allowed = accessibleTalukas.some(
+        (t) => t.toString() === talukaId.toString()
+      );
+      if (!allowed) throw new Error("Access denied to this Taluka");
+    }
+
+    targetTalukas = [talukaId];
+  }
+  // 2️⃣ Admin restricted to assigned talukas
+  else if (accessibleTalukas && accessibleTalukas.length > 0) {
+    targetTalukas = accessibleTalukas;
+  }
+
+  if (targetTalukas.length > 0) {
+    filter.taluka = { $in: targetTalukas };
+  }
+
   const skip = (page - 1) * limit;
+  const totalRecords = await Complainer.countDocuments(filter);
 
-  const [complainers, totalRecords] = await Promise.all([
-    Complainer.find()
-      .populate("taluka", "name")
-      .populate("village", "name")
-      .populate("addedBy", "name phone")
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 }),
+  const data = await Complainer.find(filter)
+    .populate("taluka", "name")
+    .populate("village", "name")
+    .populate("addedBy", "name phone")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(Number(limit));
 
-    Complainer.countDocuments()
-  ]);
-
-  const totalPages = Math.ceil(totalRecords / limit);
-
-  return {
-    page,
-    limit,
-    totalRecords,
-    totalPages,
-    data: complainers
-  };
+  return { data, totalRecords };
 };
+
 
 // ==========================
 // Get Complainer by Mongo _id
 // ==========================
-export const getComplainerByIdService = async (id) => {
+export const getComplainerByIdService = async (id, req) => {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid complainer ID.");
+    throw new Error("Invalid complainer ID");
   }
 
   const complainer = await Complainer.findById(id)
@@ -100,12 +125,22 @@ export const getComplainerByIdService = async (id) => {
     .populate("village", "name")
     .populate("addedBy", "name phone");
 
-  if (!complainer) {
-    throw new Error("Complainer not found.");
+  if (!complainer) throw new Error("Complainer not found");
+
+  // 🔒 Admin taluka restriction
+  if (
+    req.role === "admin" &&
+    req.user.assignedTaluka &&
+    !req.user.assignedTaluka.some(
+      (t) => t.toString() === complainer.taluka._id.toString()
+    )
+  ) {
+    throw new Error("Not allowed to view this complainer");
   }
 
   return complainer;
 };
+
 
 // ==========================
 // Get Complainers by AppUser

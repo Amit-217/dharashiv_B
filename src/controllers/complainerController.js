@@ -39,14 +39,27 @@ export const createComplainer = async (req, res) => {
 // GET ALL
 export const getAllComplainers = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    let accessibleTalukas = null;
 
-    const data = await getAllComplainersService(page, limit);
+    // 🔒 Admin restriction
+    if (req.role === "admin") {
+      accessibleTalukas = req.user.assignedTaluka;
+    }
 
-    res.status(200).json({
+    const { data, totalRecords } = await getAllComplainersService(
+      req.query,
+      accessibleTalukas
+    );
+
+    const { page = 1, limit = 10 } = req.query;
+
+    res.json({
       success: true,
-      ...data
+      page: Number(page),
+      limit: Number(limit),
+      totalRecords,
+      totalPages: Math.ceil(totalRecords / limit),
+      data
     });
   } catch (err) {
     res.status(500).json({
@@ -56,15 +69,20 @@ export const getAllComplainers = async (req, res) => {
   }
 };
 
+
 // GET ONE
 export const getComplainerById = async (req, res) => {
   try {
-    const data = await getComplainerByIdService(req.params.id);
-    res.status(200).json(data);
+    const data = await getComplainerByIdService(req.params.id, req);
+    res.json({ success: true, data });
   } catch (err) {
-    res.status(404).json({ message: err.message });
+    res.status(400).json({
+      success: false,
+      message: err.message
+    });
   }
 };
+
 
 // GET BY USER
 export const getComplainersByAppUser = async (req, res) => {

@@ -23,7 +23,7 @@ export const registerVisitor = async (req, res) => {
     }
 
     // 🔵 OFFLINE (Admin)
-    else if (req.role === "admin" || req.role === "superadmin") {
+    else if (req.role === "admin" || req.role === "superadmin" || req.role === "staff") {
       visitor = await registerVisitorOfflineService({
         ...req.body,
         registeredBy: req.user._id

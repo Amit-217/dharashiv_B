@@ -170,7 +170,14 @@ export const getAllComplaintsService = async (query, accessibleTalukas = null) =
 
   const data = await Complaint.find(filter)
     .select("complaintId subject status createdAt")
-    .populate("complainer", "name")
+    .populate({
+      path: "complainer",
+      select: "name complainerId phone",
+      populate: [
+        { path: "taluka", select: "name" },
+        { path: "village", select: "name" }
+      ]
+    })
     .populate("department", "name")
     .sort({ createdAt: -1 })
     .skip(skip)
